@@ -80,6 +80,60 @@ http://127.0.0.1:8000
 
 ## 部署
 
+### Zeabur
+
+如果你在 Render 上受限于信用卡，优先推荐 Zeabur。
+
+这个项目已经带有 [Dockerfile](/Users/kwaibear/Documents/NanoKwali/Dockerfile:1)，Zeabur 可以直接识别并用 Docker 部署。
+
+部署建议：
+
+1. 在 Zeabur 中导入 GitHub 仓库 `bboyabssiszai/NanoKwali`
+2. 让 Zeabur 自动识别 `Dockerfile`
+3. 设置环境变量：
+   `MOONSHOT_API_KEY`
+4. 在服务里挂载持久化 Volume，并把挂载目录设为：
+   `/data/nanokwali`
+5. 再增加环境变量：
+   `NANOKWALI_RUNTIME_DIR=/data/nanokwali`
+
+这样这些内容会被持久化保存：
+
+- 会话历史
+- cron 提醒任务
+- heartbeat 文件
+- 你的 agent 人格模板副本
+
+Zeabur 相关官方资料：
+
+- Dockerfile 部署: https://zeabur.com/docs/en-US/deploy/dockerfile
+- 持久化 Volumes: https://zeabur.com/docs/en-US/data-management/volumes
+- 公网访问: https://zeabur.com/docs/en-US/networking/public
+- 定价/试用: https://zeabur.cn/zh-CN/pricing
+- 方案与支付方式: https://zeabur.com/docs/zh-CN/billing/plans
+
+我之所以优先推荐它，是因为 Zeabur 当前文档明确写了：
+
+- 免费试用方案可用，且“无需绑定信用卡”
+- 团队方案支持“信用卡和支付宝付款”
+
+### Sealos
+
+如果你更想走国内云原生平台，也可以考虑 Sealos。
+
+它的文档明确支持：
+
+- 公网 URL
+- 自定义域名
+- 持久化存储
+
+参考：
+
+- App Launchpad: https://sjrkwxeygluy.bja.sealos.run/en/docs/5.0.0/user-guide/app-launchpad/
+- 平台介绍: https://sealos.run/docs/overview/intro
+
+这条路线也能跑你的项目，但相对 Zeabur，第一次上手会更偏“云平台操作”一些。
+
 ### Render
 
 这个项目已经带好了：
