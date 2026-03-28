@@ -1,0 +1,34 @@
+{
+  "agents": {
+    "defaults": {
+      "model": "openrouter/openai/gpt-4.1-mini",
+      "provider": "openrouter",
+      "timezone": "Asia/Shanghai",
+      "maxToolIterations": 20
+    }
+  },
+  "providers": {
+    "moonshot": {
+      "apiKey": "",
+      "apiBase": "https://api.moonshot.cn/v1"
+    }
+  },
+  "channels": {
+    "sendProgress": true,
+    "sendToolHints": false
+  },
+  "gateway": {
+    "heartbeat": {
+      "enabled": true,
+      "intervalS": 1800,
+      "keepRecentMessages": 8
+    }
+  },
+  "tools": {
+    "restrictToWorkspace": false,
+    "exec": {
+      "enable": true,
+      "timeout": 60
+    }
+  }
+}

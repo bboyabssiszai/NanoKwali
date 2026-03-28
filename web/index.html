@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NanoKwali 一键成片 Agent</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-copy">
+        <p class="eyebrow">NanoKwali Studio</p>
+        <h1>一键成片专属 Agent</h1>
+        <p class="subcopy">
+          把你的创意、脚本、提醒和拍摄节奏交给同一个智能助手。
+          它在页面正中间等你，也会在合适的时候主动提醒你继续推进。
+        </p>
+      </section>
+
+      <section class="agent-stage">
+        <div class="agent-card">
+          <div class="agent-topbar">
+            <div>
+              <p class="agent-label">专属助理</p>
+              <h2>成片指挥台</h2>
+            </div>
+            <button id="notifyButton" class="ghost-button" type="button">开启提醒</button>
+          </div>
+
+          <div id="chatLog" class="chat-log" aria-live="polite"></div>
+
+          <form id="chatForm" class="composer">
+            <textarea
+              id="messageInput"
+              rows="3"
+              placeholder="例如：帮我规划一个 30 秒口播短视频脚本，并提醒我今晚 8 点开始剪辑"
+            ></textarea>
+            <div class="composer-row">
+              <p class="hint">你可以直接让它安排提醒、拆脚本、列镜头或跟进任务。</p>
+              <button id="sendButton" class="send-button" type="submit">发送</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+  </html>

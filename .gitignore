@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.DS_Store
+.env
+
+runtime/workspace/
+runtime/nanobot-config.json
+
+app/__pycache__/
+web/.DS_Store

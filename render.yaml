@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: nanokwali
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/status
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NANOKWALI_RUNTIME_DIR
+        value: /var/data/nanokwali
+      - key: MOONSHOT_API_KEY
+        sync: false
+    disk:
+      name: app-data
+      mountPath: /var/data
+      sizeGB: 5
