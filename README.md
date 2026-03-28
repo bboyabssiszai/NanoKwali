@@ -2,6 +2,8 @@
 
 基于 [HKUDS/nanobot](https://github.com/HKUDS/nanobot) 做的“一键成片”专属网页 Agent。
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bboyabssiszai/NanoKwali)
+
 这一版已经包含：
 
 - 居中网页聊天界面

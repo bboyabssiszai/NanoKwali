@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: starter
     healthCheckPath: /api/status
-    autoDeployTrigger: commit
+    autoDeploy: false
     envVars:
       - key: PORT
         value: "10000"
