@@ -55,6 +55,11 @@ cp .env.example .env
 
 当前默认已经切到 `moonshot + kimi-k2.5`。
 
+如果你要启用 Kling 直连视频生成，再补两项环境变量：
+
+- `KLING_ACCESS_KEY`
+- `KLING_SECRET_KEY`
+
 ### 3. 启动网页 Agent
 
 ```bash
@@ -77,6 +82,17 @@ http://127.0.0.1:8000
 - `每天下午 3 点提醒我检查视频发布数据`
 
 如果浏览器已允许通知，提醒会同时以桌面通知形式出现。
+
+## 视频生成
+
+项目已经支持通过 Kling API 直接生成视频。
+
+需要环境变量：
+
+- `KLING_ACCESS_KEY`
+- `KLING_SECRET_KEY`
+
+前端会提供“生成视频”按钮。提交后，后端会异步创建 Kling 文生视频任务，并在生成完成后把视频直接展示在聊天区。
 
 ## 部署
 

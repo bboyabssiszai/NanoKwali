@@ -3,6 +3,7 @@ const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
 const notifyButton = document.getElementById("notifyButton");
 const sendButton = document.getElementById("sendButton");
+const videoButton = document.getElementById("videoButton");
 
 let sessionId = localStorage.getItem("nanokwali_session_id") || "";
 let currentAssistantBubble = null;
@@ -11,6 +12,36 @@ function addBubble(role, content) {
   const bubble = document.createElement("article");
   bubble.className = `bubble ${role}`;
   bubble.textContent = content;
+  chatLog.appendChild(bubble);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return bubble;
+}
+
+function addVideoBubble(videoUrl, caption = "已生成视频") {
+  const bubble = document.createElement("article");
+  bubble.className = "bubble assistant video-bubble";
+
+  const label = document.createElement("p");
+  label.className = "video-label";
+  label.textContent = caption;
+
+  const video = document.createElement("video");
+  video.className = "generated-video";
+  video.src = videoUrl;
+  video.controls = true;
+  video.playsInline = true;
+  video.preload = "metadata";
+
+  const link = document.createElement("a");
+  link.href = videoUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = "打开原视频";
+  link.className = "video-link";
+
+  bubble.appendChild(label);
+  bubble.appendChild(video);
+  bubble.appendChild(link);
   chatLog.appendChild(bubble);
   chatLog.scrollTop = chatLog.scrollHeight;
   return bubble;
@@ -77,6 +108,21 @@ function handleEvent(payload) {
     return;
   }
 
+  if (payload.type === "video_status") {
+    addBubble("meta", payload.content);
+    return;
+  }
+
+  if (payload.type === "video_error") {
+    addBubble("meta", payload.content);
+    return;
+  }
+
+  if (payload.type === "video_result") {
+    addVideoBubble(payload.metadata.videoUrl, payload.content || "视频生成完成");
+    return;
+  }
+
   if (payload.metadata && payload.metadata._streamed) {
     return;
   }
@@ -96,6 +142,21 @@ async function sendMessage(message) {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ detail: "发送失败" }));
     throw new Error(payload.detail || "发送失败");
+  }
+}
+
+async function generateVideo(prompt) {
+  const response = await fetch("/api/video/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      prompt,
+    }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ detail: "视频生成失败" }));
+    throw new Error(payload.detail || "视频生成失败");
   }
 }
 
@@ -141,6 +202,28 @@ chatForm.addEventListener("submit", async (event) => {
 });
 
 notifyButton.addEventListener("click", maybeEnableNotifications);
+
+videoButton.addEventListener("click", async () => {
+  const prompt = messageInput.value.trim();
+  if (!prompt) {
+    addBubble("meta", "先输入你想生成的视频描述，再点击“生成视频”。");
+    return;
+  }
+
+  addBubble("user", `请根据这个描述直接生成视频：${prompt}`);
+  videoButton.disabled = true;
+  sendButton.disabled = true;
+
+  try {
+    await generateVideo(prompt);
+  } catch (error) {
+    addBubble("meta", error.message || "视频生成失败，请稍后再试。");
+  } finally {
+    videoButton.disabled = false;
+    sendButton.disabled = false;
+    messageInput.focus();
+  }
+});
 
 async function boot() {
   addIntro();

@@ -189,10 +189,41 @@ body {
   gap: 12px;
 }
 
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .hint {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.video-bubble {
+  width: min(100%, 520px);
+}
+
+.video-label {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.generated-video {
+  width: 100%;
+  border-radius: 14px;
+  display: block;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.video-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--accent-deep);
+  text-decoration: none;
+  font-size: 14px;
 }
 
 @media (max-width: 960px) {
@@ -214,6 +245,14 @@ body {
   .composer-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .action-group {
+    width: 100%;
+  }
+
+  .action-group button {
+    flex: 1;
   }
 
   .bubble {

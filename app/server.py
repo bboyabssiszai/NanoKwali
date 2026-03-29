@@ -29,6 +29,8 @@ from nanobot.session.manager import SessionManager
 from nanobot.utils.helpers import sync_workspace_templates
 import typer
 
+from app.kling import KlingClient, KlingConfig
+
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT / "web"
@@ -72,6 +74,16 @@ class SessionRequest(BaseModel):
     session_id: str | None = None
 
 
+class VideoGenerateRequest(BaseModel):
+    session_id: str = Field(min_length=1)
+    prompt: str = Field(min_length=1)
+    negative_prompt: str | None = None
+    model_name: str = "kling-v2-1"
+    mode: str = "std"
+    duration: str = "5"
+    aspect_ratio: str = "16:9"
+
+
 class AgentService:
     def __init__(self) -> None:
         self.bus = MessageBus()
@@ -85,6 +97,7 @@ class AgentService:
         self.agent: AgentLoop | None = None
         self.heartbeat: HeartbeatService | None = None
         self.current_provider: str | None = None
+        self.kling_client: KlingClient | None = None
 
     async def start(self) -> None:
         if self._started:
@@ -95,6 +108,7 @@ class AgentService:
             self.current_provider = config.agents.defaults.provider
             sync_workspace_templates(config.workspace_path)
             provider = _make_provider(config)
+            self.kling_client = self._build_kling_client()
             self.agent = AgentLoop(
                 bus=self.bus,
                 provider=provider,
@@ -241,6 +255,13 @@ class AgentService:
             await self.agent.close_mcp()
         self._started = False
 
+    def _build_kling_client(self) -> KlingClient | None:
+        access_key = os.getenv("KLING_ACCESS_KEY", "").strip()
+        secret_key = os.getenv("KLING_SECRET_KEY", "").strip()
+        if not access_key or not secret_key:
+            return None
+        return KlingClient(KlingConfig(access_key=access_key, secret_key=secret_key))
+
     def _load_runtime_config(self):
         from nanobot.providers.registry import PROVIDERS
 
@@ -294,6 +315,23 @@ class AgentService:
         for queue in queues:
             await queue.put(event)
 
+    async def _emit_session_event(
+        self,
+        session_id: str,
+        event_type: str,
+        content: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        await self._broadcast(
+            session_id,
+            {
+                "type": event_type,
+                "content": content,
+                "metadata": metadata or {},
+                "timestamp": time.time(),
+            },
+        )
+
     def _to_event(self, msg: OutboundMessage) -> dict[str, Any]:
         metadata = dict(msg.metadata or {})
         if metadata.get("_stream_delta"):
@@ -339,6 +377,158 @@ class AgentService:
             content=message,
             metadata={"_wants_stream": True},
         ))
+
+    def _track_task(self, coro, *, name: str) -> None:
+        task = asyncio.create_task(coro, name=name)
+        self._tasks.append(task)
+        task.add_done_callback(lambda done: self._tasks.remove(done) if done in self._tasks else None)
+
+    async def enqueue_video_generation(
+        self,
+        *,
+        session_id: str,
+        prompt: str,
+        negative_prompt: str | None,
+        model_name: str,
+        mode: str,
+        duration: str,
+        aspect_ratio: str,
+    ) -> None:
+        if not self.kling_client:
+            raise RuntimeError(
+                "Kling video generation is not configured. Please set KLING_ACCESS_KEY and KLING_SECRET_KEY."
+            )
+        self.register_session(session_id)
+        self._track_task(
+            self._run_video_generation(
+                session_id=session_id,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                model_name=model_name,
+                mode=mode,
+                duration=duration,
+                aspect_ratio=aspect_ratio,
+            ),
+            name=f"video-generation:{session_id}:{time.time_ns()}",
+        )
+
+    async def _run_video_generation(
+        self,
+        *,
+        session_id: str,
+        prompt: str,
+        negative_prompt: str | None,
+        model_name: str,
+        mode: str,
+        duration: str,
+        aspect_ratio: str,
+    ) -> None:
+        assert self.kling_client is not None
+        await self._emit_session_event(
+            session_id,
+            "video_status",
+            "正在提交视频生成任务，这通常需要几分钟。",
+            {"stage": "queued"},
+        )
+        try:
+            create_result = await asyncio.to_thread(
+                self.kling_client.create_text_to_video,
+                prompt=prompt,
+                model_name=model_name,
+                mode=mode,
+                duration=duration,
+                aspect_ratio=aspect_ratio,
+                negative_prompt=negative_prompt,
+            )
+        except Exception as exc:
+            await self._emit_session_event(
+                session_id,
+                "video_error",
+                f"视频任务创建失败：{exc}",
+            )
+            return
+
+        task_id = ((create_result or {}).get("data") or {}).get("task_id")
+        if not task_id:
+            await self._emit_session_event(
+                session_id,
+                "video_error",
+                "视频任务创建失败：未拿到 task_id。",
+                {"raw": create_result},
+            )
+            return
+
+        await self._emit_session_event(
+            session_id,
+            "video_status",
+            "视频任务已提交，正在等待 Kling 生成结果。",
+            {"stage": "submitted", "taskId": task_id},
+        )
+
+        start = time.time()
+        while True:
+            if time.time() - start > 1800:
+                await self._emit_session_event(
+                    session_id,
+                    "video_error",
+                    "视频生成超时，请稍后重试。",
+                    {"taskId": task_id},
+                )
+                return
+            try:
+                status_result = await asyncio.to_thread(self.kling_client.get_text_to_video, task_id)
+            except Exception as exc:
+                await self._emit_session_event(
+                    session_id,
+                    "video_error",
+                    f"查询视频状态失败：{exc}",
+                    {"taskId": task_id},
+                )
+                return
+
+            data = (status_result or {}).get("data") or {}
+            task_status = data.get("task_status")
+            if task_status == "succeed":
+                videos = ((data.get("task_result") or {}).get("videos") or [])
+                video_url = videos[0].get("url") if videos else None
+                if not video_url:
+                    await self._emit_session_event(
+                        session_id,
+                        "video_error",
+                        "视频任务完成了，但没有返回可播放链接。",
+                        {"taskId": task_id},
+                    )
+                    return
+                await self._emit_session_event(
+                    session_id,
+                    "video_result",
+                    "视频生成完成，可以直接预览。",
+                    {
+                        "taskId": task_id,
+                        "videoUrl": video_url,
+                        "prompt": prompt,
+                        "modelName": model_name,
+                        "duration": duration,
+                        "aspectRatio": aspect_ratio,
+                    },
+                )
+                return
+            if task_status == "failed":
+                await self._emit_session_event(
+                    session_id,
+                    "video_error",
+                    f"视频生成失败：{data.get('task_status_msg') or '未知错误'}",
+                    {"taskId": task_id},
+                )
+                return
+
+            await self._emit_session_event(
+                session_id,
+                "video_status",
+                "视频仍在生成中，请稍等。",
+                {"stage": task_status or "processing", "taskId": task_id},
+            )
+            await asyncio.sleep(10)
 
     async def stream(self, session_id: str):
         self.register_session(session_id)
@@ -396,6 +586,8 @@ async def status() -> JSONResponse:
         "provider": service.current_provider,
         "env": {
             "MOONSHOT_API_KEY": bool(os.getenv("MOONSHOT_API_KEY", "").strip()),
+            "KLING_ACCESS_KEY": bool(os.getenv("KLING_ACCESS_KEY", "").strip()),
+            "KLING_SECRET_KEY": bool(os.getenv("KLING_SECRET_KEY", "").strip()),
             "NANOKWALI_RUNTIME_DIR": os.getenv("NANOKWALI_RUNTIME_DIR", ""),
         },
     })
@@ -414,6 +606,25 @@ async def chat(payload: ChatRequest) -> JSONResponse:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
     try:
         await service.enqueue_message(payload.session_id, payload.message.strip())
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return JSONResponse({"queued": True})
+
+
+@app.post("/api/video/generate")
+async def generate_video(payload: VideoGenerateRequest) -> JSONResponse:
+    if not payload.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+    try:
+        await service.enqueue_video_generation(
+            session_id=payload.session_id,
+            prompt=payload.prompt.strip(),
+            negative_prompt=payload.negative_prompt,
+            model_name=payload.model_name,
+            mode=payload.mode,
+            duration=payload.duration,
+            aspect_ratio=payload.aspect_ratio,
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return JSONResponse({"queued": True})
