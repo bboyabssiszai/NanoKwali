@@ -439,9 +439,12 @@ class AgentLoop:
         await self.memory_consolidator.maybe_consolidate_by_tokens(session)
 
         self._set_tool_context(msg.channel, msg.chat_id, msg.metadata.get("message_id"))
-        if message_tool := self.tools.get("message"):
-            if isinstance(message_tool, MessageTool):
-                message_tool.start_turn()
+        for name in self.tools.tool_names:
+            if tool := self.tools.get(name):
+                if hasattr(tool, "start_turn"):
+                    tool.start_turn()
+                if hasattr(tool, "set_request_text"):
+                    tool.set_request_text(msg.content)
 
         history = session.get_history(max_messages=0)
         initial_messages = self.context.build_messages(
@@ -475,8 +478,10 @@ class AgentLoop:
         self.sessions.save(session)
         self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
 
-        if (mt := self.tools.get("message")) and isinstance(mt, MessageTool) and mt._sent_in_turn:
-            return None
+        for name in self.tools.tool_names:
+            if tool := self.tools.get(name):
+                if getattr(tool, "_sent_in_turn", False):
+                    return None
 
         preview = final_content[:120] + "..." if len(final_content) > 120 else final_content
         logger.info("Response to {}:{}: {}", msg.channel, msg.sender_id, preview)

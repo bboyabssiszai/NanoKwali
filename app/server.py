@@ -159,7 +159,10 @@ class AgentService:
                 timezone=config.agents.defaults.timezone,
             )
             self.agent.tools.register(
-                VideoGenerationTool(generate_callback=self.enqueue_video_generation)
+                VideoGenerationTool(
+                    generate_callback=self.enqueue_video_generation,
+                    send_callback=self.bus.publish_outbound,
+                )
             )
         except typer.Exit as exc:
             code = getattr(exc, "exit_code", 1)
