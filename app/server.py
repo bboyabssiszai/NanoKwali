@@ -21,7 +21,7 @@ from nanobot.agent.loop import AgentLoop
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.cli.commands import _make_provider
-from nanobot.config.loader import load_config, set_config_path
+from nanobot.config.loader import load_config, save_config, set_config_path
 from nanobot.cron.service import CronService
 from nanobot.cron.types import CronJob
 from nanobot.heartbeat.service import HeartbeatService
@@ -253,6 +253,21 @@ class AgentService:
         config = load_config(CONFIG_PATH)
         config.agents.defaults.workspace = str(WORKSPACE_DIR)
 
+        migrated = False
+        moonshot_key = os.getenv("MOONSHOT_API_KEY", "").strip()
+        openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+
+        if (
+            config.agents.defaults.provider == "openrouter"
+            and moonshot_key
+            and not openrouter_key
+        ):
+            config.agents.defaults.provider = "moonshot"
+            if not config.agents.defaults.model or config.agents.defaults.model.startswith("openrouter/"):
+                config.agents.defaults.model = "kimi-k2.5"
+            config.providers.moonshot.api_base = "https://api.moonshot.cn/v1"
+            migrated = True
+
         for spec in PROVIDERS:
             if not spec.env_key:
                 continue
@@ -260,6 +275,9 @@ class AgentService:
             env_key = os.getenv(spec.env_key, "").strip()
             if provider_cfg is not None and not provider_cfg.api_key and env_key:
                 provider_cfg.api_key = env_key
+
+        if migrated:
+            save_config(config, CONFIG_PATH)
         return config
 
     async def _fan_out_outbound(self) -> None:
