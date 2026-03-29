@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import shutil
 import time
 import uuid
@@ -91,9 +92,29 @@ def _seed_runtime_dir() -> None:
     _sync_bootstrap_workspace(BOOTSTRAP_WORKSPACE_DIR, WORKSPACE_DIR)
 
 
+def _looks_like_video_generation_request(message: str) -> bool:
+    text = (message or "").strip().lower()
+    if not text:
+        return False
+    if "视频" not in text and "video" not in text:
+        return False
+    patterns = (
+        r"生成.*视频",
+        r"做.*视频",
+        r"制作.*视频",
+        r"出.*视频",
+        r"text\s*to\s*video",
+        r"文生视频",
+        r"视频生成",
+    )
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
 class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
+    kling_access_key: str | None = None
+    kling_secret_key: str | None = None
 
 
 class SessionRequest(BaseModel):
@@ -678,8 +699,22 @@ async def create_session(payload: SessionRequest) -> JSONResponse:
 async def chat(payload: ChatRequest) -> JSONResponse:
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    message = payload.message.strip()
     try:
-        await service.enqueue_message(payload.session_id, payload.message.strip())
+        if _looks_like_video_generation_request(message):
+            await service.enqueue_video_generation(
+                session_id=payload.session_id,
+                prompt=message,
+                negative_prompt=None,
+                model_name="kling-v2-6",
+                mode="pro",
+                duration="10",
+                aspect_ratio="16:9",
+                kling_access_key=payload.kling_access_key,
+                kling_secret_key=payload.kling_secret_key,
+            )
+            return JSONResponse({"queued": True, "mode": "video_generation"})
+        await service.enqueue_message(payload.session_id, message)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return JSONResponse({"queued": True})

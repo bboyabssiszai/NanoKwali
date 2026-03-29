@@ -22,9 +22,9 @@ Use this skill when the user asks for things like:
 
 ## Core Goal
 
-Transform rough creative intent into a model-ready video generation package.
+Transform rough creative intent into a Kling-ready execution package.
 
-Do not stop at vague inspiration. Produce assets that can be pasted into video generation tools directly.
+When the product can directly generate video, prefer execution over explanation.
 
 ## Recommended Workflow
 
@@ -46,18 +46,17 @@ Do not stop at vague inspiration. Produce assets that can be pasted into video g
    - duration
    - aspect ratio
 
-3. Produce a generation package.
+3. Produce a generation package that directly helps Kling generate the clip.
 
 ## Default Output Package
 
-When the user asks for video generation help, prefer this structure:
+When the user explicitly asks for a plan or prompt package, prefer this structure:
 
 - Video Intent
 - Visual Style
 - Shot Breakdown
 - Master Prompt
 - Negative Prompt
-- Model-Specific Notes
 
 ## Prompt Writing Rules
 
@@ -117,19 +116,22 @@ For this project, use this skill to help the user:
 - turn short-video scripts into AI-generated scene prompts
 - generate food video prompts, ad prompts, and social-media video prompts
 - break a concept into 3-6 shots for separate generation
-- adapt output for different video models
+- produce Kling-first prompts that can be used immediately
 
-## Model Adaptation
+## Response Rules
 
-When useful, provide separate notes for:
+If the user wants a directly playable video:
 
-- Kling / 可灵
-- Runway
-- Pika
-- Veo
-- Hailuo
+- do not say you are reading skills or documents
+- do not repeat the same setup message twice
+- do not include Runway / Pika / Veo comparison notes unless explicitly requested
+- keep the chat response short and execution-oriented
 
-If the user does not specify a model, generate a neutral high-quality prompt first, then mention how to adapt it.
+If the user asks for a prompt or generation plan:
+
+- make the package directly useful for Kling
+- avoid generic theory
+- avoid cross-model digressions unless asked
 
 ## Suggested Response Shapes
 
