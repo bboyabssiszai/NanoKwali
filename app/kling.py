@@ -13,11 +13,22 @@ class KlingConfig:
     access_key: str
     secret_key: str
     base_url: str = "https://api-beijing.klingai.com"
+    http_proxy: str | None = None
+    https_proxy: str | None = None
+    no_proxy: str | None = None
 
 
 class KlingClient:
     def __init__(self, config: KlingConfig):
         self.config = config
+        self._session = requests.Session()
+        proxies: dict[str, str] = {}
+        if config.http_proxy:
+            proxies["http"] = config.http_proxy
+        if config.https_proxy:
+            proxies["https"] = config.https_proxy
+        if proxies:
+            self._session.proxies.update(proxies)
 
     def _token(self) -> str:
         now = int(time.time())
@@ -42,9 +53,9 @@ class KlingClient:
         self,
         *,
         prompt: str,
-        model_name: str = "kling-v2-1",
-        mode: str = "std",
-        duration: str = "5",
+        model_name: str = "kling-v2-6",
+        mode: str = "pro",
+        duration: str = "10",
         aspect_ratio: str = "16:9",
         negative_prompt: str | None = None,
     ) -> dict[str, Any]:
@@ -57,7 +68,7 @@ class KlingClient:
             "duration": duration,
             "aspect_ratio": aspect_ratio,
         }
-        response = requests.post(
+        response = self._session.post(
             f"{self.config.base_url}/v1/videos/text2video",
             json=payload,
             headers=self._headers(),
@@ -67,7 +78,7 @@ class KlingClient:
         return response.json()
 
     def get_text_to_video(self, task_id: str) -> dict[str, Any]:
-        response = requests.get(
+        response = self._session.get(
             f"{self.config.base_url}/v1/videos/text2video/{task_id}",
             headers=self._headers(),
             timeout=60,

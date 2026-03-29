@@ -93,12 +93,6 @@ body {
   gap: 12px;
 }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .agent-label {
   margin: 0;
   color: var(--muted);
@@ -143,71 +137,6 @@ body {
   flex-direction: column;
   gap: 14px;
   padding-right: 6px;
-}
-
-.hidden {
-  display: none;
-}
-
-.video-config-panel {
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 22px;
-  background: rgba(255, 247, 235, 0.92);
-  border: 1px solid rgba(92, 61, 24, 0.1);
-}
-
-.video-config-copy {
-  display: grid;
-  gap: 4px;
-}
-
-.video-config-title,
-.video-config-desc,
-.video-config-status {
-  margin: 0;
-}
-
-.video-config-title {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.video-config-desc,
-.video-config-status {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.video-config-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.config-field {
-  display: grid;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.config-field input {
-  width: 100%;
-  border: 1px solid rgba(47, 36, 23, 0.12);
-  border-radius: 14px;
-  padding: 12px 14px;
-  font: inherit;
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--text);
-}
-
-.video-config-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .bubble {
@@ -314,14 +243,6 @@ body {
   }
 
   .composer-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .topbar-actions,
-  .video-config-grid,
-  .video-config-actions {
-    grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
   }
