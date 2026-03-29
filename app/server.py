@@ -126,6 +126,7 @@ class AgentService:
                     f"Provider startup failed for '{provider_name}' "
                     f"(exit code {code}). Please check service environment variables."
                 )
+            return
         except BaseException as exc:
             self.startup_error = str(exc)
             return
