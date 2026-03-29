@@ -57,12 +57,38 @@ def _copy_missing_tree(source: Path, target: Path) -> None:
             shutil.copy2(item, destination)
 
 
+def _sync_bootstrap_workspace(source: Path, target: Path) -> None:
+    if not source.exists():
+        return
+    for relative in (
+        Path("AGENTS.md"),
+        Path("SOUL.md"),
+        Path("USER.md"),
+    ):
+        src = source / relative
+        dst = target / relative
+        if src.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+
+    skills_dir = source / "skills"
+    if skills_dir.exists():
+        for item in skills_dir.rglob("*"):
+            if item.is_dir():
+                continue
+            relative = item.relative_to(source)
+            destination = target / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, destination)
+
+
 def _seed_runtime_dir() -> None:
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_PATH.exists() and CONFIG_EXAMPLE_PATH.exists():
         shutil.copy2(CONFIG_EXAMPLE_PATH, CONFIG_PATH)
     _copy_missing_tree(BOOTSTRAP_WORKSPACE_DIR, WORKSPACE_DIR)
+    _sync_bootstrap_workspace(BOOTSTRAP_WORKSPACE_DIR, WORKSPACE_DIR)
 
 
 class ChatRequest(BaseModel):

@@ -3,7 +3,6 @@ const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
 const notifyButton = document.getElementById("notifyButton");
 const sendButton = document.getElementById("sendButton");
-const videoButton = document.getElementById("videoButton");
 const videoConfigButton = document.getElementById("videoConfigButton");
 const videoConfigPanel = document.getElementById("videoConfigPanel");
 const klingAccessKeyInput = document.getElementById("klingAccessKeyInput");
@@ -20,6 +19,25 @@ let sessionId = localStorage.getItem("nanokwali_session_id") || "";
 let currentAssistantBubble = null;
 let appStatus = null;
 let lastVideoStatusKey = "";
+
+function looksLikeVideoGenerationRequest(message) {
+  const text = (message || "").trim().toLowerCase();
+  if (!text) {
+    return false;
+  }
+  const patterns = [
+    "生成视频",
+    "做个视频",
+    "做一条视频",
+    "帮我生成一个视频",
+    "帮我做一个视频",
+    "文生视频",
+    "视频生成",
+    "可播放的视频",
+    "生成一条",
+  ];
+  return patterns.some((pattern) => text.includes(pattern));
+}
 
 function addBubble(role, content) {
   const bubble = document.createElement("article");
@@ -260,6 +278,18 @@ chatForm.addEventListener("submit", async (event) => {
   sendButton.disabled = true;
 
   try {
+    const hasServerConfig = Boolean(appStatus && appStatus.videoConfig && appStatus.videoConfig.serverKlingConfigured);
+    const klingConfig = getStoredKlingConfig();
+    const hasBrowserConfig = Boolean(klingConfig.accessKey && klingConfig.secretKey);
+    if (looksLikeVideoGenerationRequest(message)) {
+      if (!hasServerConfig && !hasBrowserConfig) {
+        toggleVideoConfigPanel(true);
+        addBubble("meta", "这条消息看起来是在直接生成视频。先在右上角的视频设置里填一下 Kling 的 AK/SK。");
+        return;
+      }
+      await generateVideo(message);
+      return;
+    }
     await sendMessage(message);
   } catch (error) {
     addBubble("meta", error.message || "发送失败，请稍后再试。");
@@ -297,36 +327,6 @@ clearVideoConfigButton.addEventListener("click", () => {
   localStorage.removeItem(KLING_SECRET_KEY_STORAGE);
   refreshVideoConfigUI();
   toggleVideoConfigPanel(false);
-});
-
-videoButton.addEventListener("click", async () => {
-  const prompt = messageInput.value.trim();
-  if (!prompt) {
-    addBubble("meta", "先输入你想生成的视频描述，再点击“生成视频”。");
-    return;
-  }
-  const hasServerConfig = Boolean(appStatus && appStatus.videoConfig && appStatus.videoConfig.serverKlingConfigured);
-  const klingConfig = getStoredKlingConfig();
-  const hasBrowserConfig = Boolean(klingConfig.accessKey && klingConfig.secretKey);
-  if (!hasServerConfig && !hasBrowserConfig) {
-    toggleVideoConfigPanel(true);
-    addBubble("meta", "先在上方小块里填一下 Kling 的 AK/SK，然后再点“生成视频”。");
-    return;
-  }
-
-  addBubble("user", `请根据这个描述直接生成视频：${prompt}`);
-  videoButton.disabled = true;
-  sendButton.disabled = true;
-
-  try {
-    await generateVideo(prompt);
-  } catch (error) {
-    addBubble("meta", error.message || "视频生成失败，请稍后再试。");
-  } finally {
-    videoButton.disabled = false;
-    sendButton.disabled = false;
-    messageInput.focus();
-  }
 });
 
 async function boot() {
