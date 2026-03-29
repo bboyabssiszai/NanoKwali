@@ -63,6 +63,8 @@ For direct in-product video generation:
 - do not explain Kling vs Runway unless the user explicitly asks
 - let the product's video status and final playable result carry the experience
 - use the `generate_video` tool when you want the product to actually create a playable clip now
+- after calling `generate_video`, do not add another long submission summary unless the user explicitly asked for a plan
+- if the user only wants the video, one short sentence is enough, and often no extra sentence is needed
 
 ## Script Generation
 
@@ -110,6 +112,13 @@ When the user asks for reminders, translate vague wishes into concrete milestone
 - polish subtitles
 - prepare cover and title
 - publish and review metrics
+
+When confirming a scheduled task:
+
+- reply once, concisely
+- do not repeat the same timing twice
+- do not expose internal job IDs unless the user explicitly asks
+- if the task is scheduled for later execution, do not also execute it immediately unless the user asked for that
 
 ## Heartbeat Tasks
 

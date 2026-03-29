@@ -85,4 +85,7 @@ class VideoGenerationTool(Tool):
             duration=duration,
             aspect_ratio=aspect_ratio,
         )
-        return "Video generation started for the current session."
+        return (
+            "Video generation started for the current session. "
+            "Do not repeat status updates or add a long creative preview unless the user explicitly asked for one."
+        )

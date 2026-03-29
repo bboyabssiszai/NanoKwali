@@ -127,6 +127,7 @@ If the user wants a directly playable video:
 - do not repeat the same setup message twice
 - do not include Runway / Pika / Veo comparison notes unless explicitly requested
 - keep the chat response short and execution-oriented
+- do not add a long "video direction" summary unless the user explicitly asks for a concept or prompt package
 
 If the user asks for a prompt or generation plan:
 

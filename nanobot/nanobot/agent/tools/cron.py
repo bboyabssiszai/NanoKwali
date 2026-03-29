@@ -176,7 +176,7 @@ class CronTool(Tool):
             to=self._chat_id,
             delete_after_run=delete_after,
         )
-        return f"Created job '{job.name}' (id: {job.id})"
+        return f"Scheduled reminder '{job.name}' successfully"
 
     def _format_timing(self, schedule: CronSchedule) -> str:
         """Format schedule as a human-readable timing string."""
