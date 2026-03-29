@@ -433,7 +433,7 @@ class OpenAICompatProvider(LLMProvider):
             tool_calls=tool_calls,
             finish_reason=finish_reason or "stop",
             usage=self._extract_usage(response),
-            reasoning_content=getattr(msg, "reasoning_content", None) or None,
+            reasoning_content=self._extract_text_content(getattr(msg, "reasoning_content", None)),
         )
 
     @classmethod
@@ -511,8 +511,8 @@ class OpenAICompatProvider(LLMProvider):
             if delta and delta.content:
                 content_parts.append(delta.content)
             if delta:
-                reasoning = getattr(delta, "reasoning_content", None)
-                if isinstance(reasoning, str) and reasoning:
+                reasoning = cls._extract_text_content(getattr(delta, "reasoning_content", None))
+                if reasoning:
                     reasoning_parts.append(reasoning)
             for tc in (delta.tool_calls or []) if delta else []:
                 _accum_tc(tc, getattr(tc, "index", 0))

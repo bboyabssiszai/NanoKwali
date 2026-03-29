@@ -122,6 +122,7 @@ For this project, use this skill to help the user:
 
 If the user wants a directly playable video:
 
+- call the `generate_video` tool
 - do not say you are reading skills or documents
 - do not repeat the same setup message twice
 - do not include Runway / Pika / Veo comparison notes unless explicitly requested

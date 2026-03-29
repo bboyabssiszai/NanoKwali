@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import shutil
 import time
 import uuid
@@ -31,6 +30,7 @@ from nanobot.utils.helpers import sync_workspace_templates
 import typer
 
 from app.kling import KlingClient, KlingConfig
+from app.video_generation_tool import VideoGenerationTool
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -92,45 +92,6 @@ def _seed_runtime_dir() -> None:
     _sync_bootstrap_workspace(BOOTSTRAP_WORKSPACE_DIR, WORKSPACE_DIR)
 
 
-def _looks_like_video_generation_request(message: str) -> bool:
-    text = (message or "").strip().lower()
-    if not text:
-        return False
-    if "视频" not in text and "video" not in text:
-        return False
-    scheduling_markers = (
-        "提醒",
-        "分钟后",
-        "小时后",
-        "天后",
-        "今晚",
-        "明天",
-        "后天",
-        "定时",
-        "稍后",
-        "等会",
-        "回头",
-        "之后",
-        "先",
-    )
-    if any(marker in text for marker in scheduling_markers):
-        return False
-    if re.search(r"\d+\s*(分钟|小时|天)后", text):
-        return False
-    if re.search(r"(今天|今晚|明天|后天)\s*\d+", text):
-        return False
-    patterns = (
-        r"生成.*视频",
-        r"做.*视频",
-        r"制作.*视频",
-        r"出.*视频",
-        r"text\s*to\s*video",
-        r"文生视频",
-        r"视频生成",
-    )
-    return any(re.search(pattern, text) for pattern in patterns)
-
-
 class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
@@ -168,6 +129,7 @@ class AgentService:
         self.heartbeat: HeartbeatService | None = None
         self.current_provider: str | None = None
         self.kling_client: KlingClient | None = None
+        self.session_kling_credentials: dict[str, tuple[str, str]] = {}
 
     async def start(self) -> None:
         if self._started:
@@ -195,6 +157,9 @@ class AgentService:
                 mcp_servers=config.tools.mcp_servers,
                 channels_config=config.channels,
                 timezone=config.agents.defaults.timezone,
+            )
+            self.agent.tools.register(
+                VideoGenerationTool(generate_callback=self.enqueue_video_generation)
             )
         except typer.Exit as exc:
             code = getattr(exc, "exit_code", 1)
@@ -351,9 +316,21 @@ class AgentService:
             )
         )
 
+    def remember_kling_credentials(
+        self,
+        session_id: str,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+    ) -> None:
+        ak = (access_key or "").strip()
+        sk = (secret_key or "").strip()
+        if ak and sk:
+            self.session_kling_credentials[session_id] = (ak, sk)
+
     def _resolve_kling_client(
         self,
         *,
+        session_id: str | None = None,
         access_key: str | None = None,
         secret_key: str | None = None,
     ) -> KlingClient | None:
@@ -369,6 +346,18 @@ class AgentService:
                     no_proxy=os.getenv("KLING_NO_PROXY", "").strip() or None,
                 )
             )
+        if session_id:
+            stored = self.session_kling_credentials.get(session_id)
+            if stored:
+                return KlingClient(
+                    KlingConfig(
+                        access_key=stored[0],
+                        secret_key=stored[1],
+                        http_proxy=os.getenv("KLING_HTTP_PROXY", "").strip() or None,
+                        https_proxy=os.getenv("KLING_HTTPS_PROXY", "").strip() or None,
+                        no_proxy=os.getenv("KLING_NO_PROXY", "").strip() or None,
+                    )
+                )
         return self.kling_client
 
     def _load_runtime_config(self):
@@ -506,6 +495,7 @@ class AgentService:
         kling_secret_key: str | None = None,
     ) -> None:
         kling_client = self._resolve_kling_client(
+            session_id=session_id,
             access_key=kling_access_key,
             secret_key=kling_secret_key,
         )
@@ -721,20 +711,12 @@ async def chat(payload: ChatRequest) -> JSONResponse:
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
     message = payload.message.strip()
+    service.remember_kling_credentials(
+        payload.session_id,
+        payload.kling_access_key,
+        payload.kling_secret_key,
+    )
     try:
-        if _looks_like_video_generation_request(message):
-            await service.enqueue_video_generation(
-                session_id=payload.session_id,
-                prompt=message,
-                negative_prompt=None,
-                model_name="kling-v2-6",
-                mode="pro",
-                duration="10",
-                aspect_ratio="16:9",
-                kling_access_key=payload.kling_access_key,
-                kling_secret_key=payload.kling_secret_key,
-            )
-            return JSONResponse({"queued": True, "mode": "video_generation"})
         await service.enqueue_message(payload.session_id, message)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -745,6 +727,11 @@ async def chat(payload: ChatRequest) -> JSONResponse:
 async def generate_video(payload: VideoGenerateRequest) -> JSONResponse:
     if not payload.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+    service.remember_kling_credentials(
+        payload.session_id,
+        payload.kling_access_key,
+        payload.kling_secret_key,
+    )
     try:
         await service.enqueue_video_generation(
             session_id=payload.session_id,

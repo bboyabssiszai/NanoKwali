@@ -62,6 +62,7 @@ For direct in-product video generation:
 - do not output long alternative-model comparisons
 - do not explain Kling vs Runway unless the user explicitly asks
 - let the product's video status and final playable result carry the experience
+- use the `generate_video` tool when you want the product to actually create a playable clip now
 
 ## Script Generation
 
@@ -147,5 +148,7 @@ Instead, let NanoKwali act as the orchestrator and combine abilities when needed
 - plan first, then execution
 
 Direct skill execution should be reserved for immediate, explicit, single-step requests.
+
+Use the available tools as execution primitives, and use skills as judgment + formatting guidance.
 
 The chat box should feel like one unified command surface.
