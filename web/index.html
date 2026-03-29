@@ -24,8 +24,35 @@
               <p class="agent-label">专属助理</p>
               <h2>成片指挥台</h2>
             </div>
-            <button id="notifyButton" class="ghost-button" type="button">开启提醒</button>
+            <div class="topbar-actions">
+              <button id="videoConfigButton" class="ghost-button" type="button">视频设置</button>
+              <button id="notifyButton" class="ghost-button" type="button">开启提醒</button>
+            </div>
           </div>
+
+          <section id="videoConfigPanel" class="video-config-panel hidden" aria-label="视频生成配置">
+            <div class="video-config-copy">
+              <p class="video-config-title">Kling 视频生成配置</p>
+              <p class="video-config-desc">只保存在当前浏览器，本地生效，不会写进公开仓库。</p>
+            </div>
+            <div class="video-config-grid">
+              <label class="config-field">
+                <span>Kling Access Key</span>
+                <input id="klingAccessKeyInput" type="password" autocomplete="off" placeholder="输入你的 Kling AK" />
+              </label>
+              <label class="config-field">
+                <span>Kling Secret Key</span>
+                <input id="klingSecretKeyInput" type="password" autocomplete="off" placeholder="输入你的 Kling SK" />
+              </label>
+            </div>
+            <div class="video-config-actions">
+              <p id="videoConfigStatus" class="video-config-status">还没有保存 Kling 凭证。</p>
+              <div class="action-group">
+                <button id="clearVideoConfigButton" class="ghost-button" type="button">清空</button>
+                <button id="saveVideoConfigButton" class="send-button" type="button">保存视频配置</button>
+              </div>
+            </div>
+          </section>
 
           <div id="chatLog" class="chat-log" aria-live="polite"></div>
 

@@ -82,6 +82,8 @@ class VideoGenerateRequest(BaseModel):
     mode: str = "std"
     duration: str = "5"
     aspect_ratio: str = "16:9"
+    kling_access_key: str | None = None
+    kling_secret_key: str | None = None
 
 
 class AgentService:
@@ -262,6 +264,20 @@ class AgentService:
             return None
         return KlingClient(KlingConfig(access_key=access_key, secret_key=secret_key))
 
+    def _resolve_kling_client(
+        self,
+        *,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+    ) -> KlingClient | None:
+        request_access_key = (access_key or "").strip()
+        request_secret_key = (secret_key or "").strip()
+        if request_access_key and request_secret_key:
+            return KlingClient(
+                KlingConfig(access_key=request_access_key, secret_key=request_secret_key)
+            )
+        return self.kling_client
+
     def _load_runtime_config(self):
         from nanobot.providers.registry import PROVIDERS
 
@@ -393,10 +409,16 @@ class AgentService:
         mode: str,
         duration: str,
         aspect_ratio: str,
+        kling_access_key: str | None = None,
+        kling_secret_key: str | None = None,
     ) -> None:
-        if not self.kling_client:
+        kling_client = self._resolve_kling_client(
+            access_key=kling_access_key,
+            secret_key=kling_secret_key,
+        )
+        if not kling_client:
             raise RuntimeError(
-                "Kling video generation is not configured. Please set KLING_ACCESS_KEY and KLING_SECRET_KEY."
+                "Kling video generation is not configured. Please add Kling AK/SK in the page settings first."
             )
         self.register_session(session_id)
         self._track_task(
@@ -408,6 +430,7 @@ class AgentService:
                 mode=mode,
                 duration=duration,
                 aspect_ratio=aspect_ratio,
+                kling_client=kling_client,
             ),
             name=f"video-generation:{session_id}:{time.time_ns()}",
         )
@@ -422,8 +445,8 @@ class AgentService:
         mode: str,
         duration: str,
         aspect_ratio: str,
+        kling_client: KlingClient,
     ) -> None:
-        assert self.kling_client is not None
         await self._emit_session_event(
             session_id,
             "video_status",
@@ -432,7 +455,7 @@ class AgentService:
         )
         try:
             create_result = await asyncio.to_thread(
-                self.kling_client.create_text_to_video,
+                kling_client.create_text_to_video,
                 prompt=prompt,
                 model_name=model_name,
                 mode=mode,
@@ -476,7 +499,7 @@ class AgentService:
                 )
                 return
             try:
-                status_result = await asyncio.to_thread(self.kling_client.get_text_to_video, task_id)
+                status_result = await asyncio.to_thread(kling_client.get_text_to_video, task_id)
             except Exception as exc:
                 await self._emit_session_event(
                     session_id,
@@ -590,6 +613,10 @@ async def status() -> JSONResponse:
             "KLING_SECRET_KEY": bool(os.getenv("KLING_SECRET_KEY", "").strip()),
             "NANOKWALI_RUNTIME_DIR": os.getenv("NANOKWALI_RUNTIME_DIR", ""),
         },
+        "videoConfig": {
+            "supportsBrowserKlingKeys": True,
+            "serverKlingConfigured": service.kling_client is not None,
+        },
     })
 
 
@@ -624,6 +651,8 @@ async def generate_video(payload: VideoGenerateRequest) -> JSONResponse:
             mode=payload.mode,
             duration=payload.duration,
             aspect_ratio=payload.aspect_ratio,
+            kling_access_key=payload.kling_access_key,
+            kling_secret_key=payload.kling_secret_key,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
