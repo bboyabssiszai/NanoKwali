@@ -98,6 +98,27 @@ def _looks_like_video_generation_request(message: str) -> bool:
         return False
     if "视频" not in text and "video" not in text:
         return False
+    scheduling_markers = (
+        "提醒",
+        "分钟后",
+        "小时后",
+        "天后",
+        "今晚",
+        "明天",
+        "后天",
+        "定时",
+        "稍后",
+        "等会",
+        "回头",
+        "之后",
+        "先",
+    )
+    if any(marker in text for marker in scheduling_markers):
+        return False
+    if re.search(r"\d+\s*(分钟|小时|天)后", text):
+        return False
+    if re.search(r"(今天|今晚|明天|后天)\s*\d+", text):
+        return False
     patterns = (
         r"生成.*视频",
         r"做.*视频",

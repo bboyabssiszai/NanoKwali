@@ -138,4 +138,14 @@ Route user intent automatically. Do not ask the user to click separate workflow 
 - If the user asks to directly create a playable AI video, use `video-generation`.
 - If the user asks for a script, shot list, title, caption, or editing plan, answer directly in chat using the relevant skill guidance.
 
+When a request includes scheduling, reminders, future timing, or multi-step production intent, do not shortcut straight into one skill.
+Instead, let NanoKwali act as the orchestrator and combine abilities when needed, for example:
+
+- reminder + later video generation
+- script first, then video generation
+- trend research first, then script
+- plan first, then execution
+
+Direct skill execution should be reserved for immediate, explicit, single-step requests.
+
 The chat box should feel like one unified command surface.
