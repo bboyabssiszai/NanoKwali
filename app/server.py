@@ -184,17 +184,8 @@ class AgentService:
             from nanobot.agent.tools.cron import CronTool
             from nanobot.agent.tools.message import MessageTool
 
-            if job.payload.deliver and job.payload.channel == "web" and job.payload.to:
-                await self.bus.publish_outbound(OutboundMessage(
-                    channel="web",
-                    chat_id=job.payload.to,
-                    content=job.payload.message,
-                    metadata={"kind": "reminder"},
-                ))
-                return job.payload.message
-
             reminder_note = (
-                "[Scheduled Task] Timer finished.\n\n"
+                "[Scheduled Task] Timer finished. Execute the scheduled instruction now.\n\n"
                 f"Task '{job.name}' has been triggered.\n"
                 f"Scheduled instruction: {job.payload.message}"
             )
