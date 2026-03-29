@@ -54,7 +54,6 @@ function handleEvent(payload) {
   }
 
   if (payload.type === "progress") {
-    addBubble("meta", `处理中: ${payload.content}`);
     return;
   }
 
@@ -75,6 +74,10 @@ function handleEvent(payload) {
   if (payload.type === "heartbeat" || payload.type === "reminder") {
     addBubble("meta", payload.content);
     maybeNotify(payload.content);
+    return;
+  }
+
+  if (payload.metadata && payload.metadata._streamed) {
     return;
   }
 

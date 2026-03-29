@@ -18,23 +18,25 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  height: 100vh;
   font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 30%),
     radial-gradient(circle at right 20%, rgba(198, 93, 46, 0.18), transparent 22%),
     linear-gradient(135deg, var(--bg), var(--bg-deep));
+  overflow: hidden;
 }
 
 .page-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: minmax(280px, 460px) minmax(320px, 720px);
   gap: 32px;
   align-items: center;
   justify-content: center;
   padding: 40px 24px;
+  overflow: hidden;
 }
 
 .hero-copy {
@@ -67,11 +69,12 @@ body {
 .agent-stage {
   display: flex;
   justify-content: center;
+  min-height: 0;
 }
 
 .agent-card {
   width: min(100%, 720px);
-  min-height: 76vh;
+  height: min(820px, calc(100vh - 80px));
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 18px;
@@ -128,6 +131,7 @@ body {
 }
 
 .chat-log {
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -194,7 +198,7 @@ body {
 @media (max-width: 960px) {
   .page-shell {
     grid-template-columns: 1fr;
-    padding: 24px 16px 32px;
+    padding: 24px 16px 24px;
   }
 
   .hero-copy {
@@ -202,7 +206,7 @@ body {
   }
 
   .agent-card {
-    min-height: 70vh;
+    height: calc(100vh - 48px);
     padding: 18px;
     border-radius: 24px;
   }
