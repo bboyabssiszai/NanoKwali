@@ -10,6 +10,7 @@ const klingAccessKeyInput = document.getElementById("klingAccessKeyInput");
 const klingSecretKeyInput = document.getElementById("klingSecretKeyInput");
 const saveVideoConfigButton = document.getElementById("saveVideoConfigButton");
 const clearVideoConfigButton = document.getElementById("clearVideoConfigButton");
+const closeVideoConfigButton = document.getElementById("closeVideoConfigButton");
 const videoConfigStatus = document.getElementById("videoConfigStatus");
 
 const KLING_ACCESS_KEY_STORAGE = "nanokwali_kling_access_key";
@@ -18,6 +19,7 @@ const KLING_SECRET_KEY_STORAGE = "nanokwali_kling_secret_key";
 let sessionId = localStorage.getItem("nanokwali_session_id") || "";
 let currentAssistantBubble = null;
 let appStatus = null;
+let lastVideoStatusKey = "";
 
 function addBubble(role, content) {
   const bubble = document.createElement("article");
@@ -163,16 +165,25 @@ function handleEvent(payload) {
   }
 
   if (payload.type === "video_status") {
+    const stage = payload.metadata && payload.metadata.stage ? payload.metadata.stage : "";
+    const taskId = payload.metadata && payload.metadata.taskId ? payload.metadata.taskId : "";
+    const statusKey = `${taskId}:${stage}:${payload.content}`;
+    if (statusKey === lastVideoStatusKey) {
+      return;
+    }
+    lastVideoStatusKey = statusKey;
     addBubble("meta", payload.content);
     return;
   }
 
   if (payload.type === "video_error") {
+    lastVideoStatusKey = "";
     addBubble("meta", payload.content);
     return;
   }
 
   if (payload.type === "video_result") {
+    lastVideoStatusKey = "";
     addVideoBubble(payload.metadata.videoUrl, payload.content || "视频生成完成");
     return;
   }
@@ -264,6 +275,10 @@ videoConfigButton.addEventListener("click", () => {
   toggleVideoConfigPanel();
 });
 
+closeVideoConfigButton.addEventListener("click", () => {
+  toggleVideoConfigPanel(false);
+});
+
 saveVideoConfigButton.addEventListener("click", () => {
   const accessKey = klingAccessKeyInput.value.trim();
   const secretKey = klingSecretKeyInput.value.trim();
@@ -274,12 +289,14 @@ saveVideoConfigButton.addEventListener("click", () => {
   localStorage.setItem(KLING_ACCESS_KEY_STORAGE, accessKey);
   localStorage.setItem(KLING_SECRET_KEY_STORAGE, secretKey);
   refreshVideoConfigUI();
+  toggleVideoConfigPanel(false);
 });
 
 clearVideoConfigButton.addEventListener("click", () => {
   localStorage.removeItem(KLING_ACCESS_KEY_STORAGE);
   localStorage.removeItem(KLING_SECRET_KEY_STORAGE);
   refreshVideoConfigUI();
+  toggleVideoConfigPanel(false);
 });
 
 videoButton.addEventListener("click", async () => {

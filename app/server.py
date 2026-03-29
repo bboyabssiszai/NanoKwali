@@ -150,7 +150,6 @@ class AgentService:
         async def on_cron_job(job: CronJob) -> str | None:
             from nanobot.agent.tools.cron import CronTool
             from nanobot.agent.tools.message import MessageTool
-            from nanobot.utils.evaluator import evaluate_response
 
             reminder_note = (
                 "[Scheduled Task] Timer finished.\n\n"
@@ -180,16 +179,19 @@ class AgentService:
                 return response
 
             if job.payload.deliver and job.payload.to and response:
-                should_notify = await evaluate_response(
-                    response, job.payload.message, provider, self.agent.model,
-                )
-                if should_notify:
-                    await self.bus.publish_outbound(OutboundMessage(
-                        channel=job.payload.channel or "web",
-                        chat_id=job.payload.to,
-                        content=response,
-                        metadata={"kind": "reminder"},
-                    ))
+                await self.bus.publish_outbound(OutboundMessage(
+                    channel=job.payload.channel or "web",
+                    chat_id=job.payload.to,
+                    content=response,
+                    metadata={"kind": "reminder"},
+                ))
+            elif job.payload.deliver and job.payload.to:
+                await self.bus.publish_outbound(OutboundMessage(
+                    channel=job.payload.channel or "web",
+                    chat_id=job.payload.to,
+                    content=job.payload.message,
+                    metadata={"kind": "reminder"},
+                ))
             return response
 
         self.cron.on_job = on_cron_job
@@ -464,7 +466,7 @@ class AgentService:
         await self._emit_session_event(
             session_id,
             "video_status",
-            "正在提交视频生成任务，这通常需要几分钟。",
+            "已调用视频生成 skill，正在生成视频。",
             {"stage": "queued"},
         )
         try:
@@ -495,14 +497,8 @@ class AgentService:
             )
             return
 
-        await self._emit_session_event(
-            session_id,
-            "video_status",
-            "视频任务已提交，正在等待 Kling 生成结果。",
-            {"stage": "submitted", "taskId": task_id},
-        )
-
         start = time.time()
+        processing_notice_sent = False
         while True:
             if time.time() - start > 1800:
                 await self._emit_session_event(
@@ -559,12 +555,14 @@ class AgentService:
                 )
                 return
 
-            await self._emit_session_event(
-                session_id,
-                "video_status",
-                "视频仍在生成中，请稍等。",
-                {"stage": task_status or "processing", "taskId": task_id},
-            )
+            if not processing_notice_sent:
+                await self._emit_session_event(
+                    session_id,
+                    "video_status",
+                    "视频仍在生成中，请稍等。",
+                    {"stage": task_status or "processing", "taskId": task_id},
+                )
+                processing_notice_sent = True
             await asyncio.sleep(10)
 
     async def stream(self, session_id: str):

@@ -31,6 +31,10 @@
           </div>
 
           <section id="videoConfigPanel" class="video-config-panel hidden" aria-label="视频生成配置">
+            <div class="video-config-header">
+              <p class="video-config-title">视频生成设置</p>
+              <button id="closeVideoConfigButton" class="ghost-button icon-button" type="button" aria-label="关闭视频设置">关闭</button>
+            </div>
             <div class="video-config-row">
               <label class="mini-config-field">
                 <span>AK</span>
@@ -40,6 +44,8 @@
                 <span>SK</span>
                 <input id="klingSecretKeyInput" type="password" autocomplete="off" placeholder="Kling Secret Key" />
               </label>
+            </div>
+            <div class="video-config-actions">
               <button id="saveVideoConfigButton" class="ghost-button small-button" type="button">保存</button>
               <button id="clearVideoConfigButton" class="ghost-button small-button" type="button">清空</button>
             </div>

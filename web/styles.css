@@ -125,6 +125,11 @@ body {
   font-size: 13px;
 }
 
+.icon-button {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
 .ghost-button {
   background: rgba(47, 36, 23, 0.07);
   color: var(--text);
@@ -163,11 +168,32 @@ body {
   border: 1px solid rgba(92, 61, 24, 0.1);
 }
 
+.video-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.video-config-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .video-config-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
   align-items: end;
+}
+
+.video-config-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .mini-config-field {
@@ -309,6 +335,14 @@ body {
 
   .video-config-row {
     grid-template-columns: 1fr;
+  }
+
+  .video-config-actions {
+    justify-content: stretch;
+  }
+
+  .video-config-actions button {
+    flex: 1;
   }
 
   .action-group {
