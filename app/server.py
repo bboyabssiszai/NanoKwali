@@ -27,6 +27,7 @@ from nanobot.cron.types import CronJob
 from nanobot.heartbeat.service import HeartbeatService
 from nanobot.session.manager import SessionManager
 from nanobot.utils.helpers import sync_workspace_templates
+import typer
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -83,6 +84,7 @@ class AgentService:
         self.startup_error: str | None = None
         self.agent: AgentLoop | None = None
         self.heartbeat: HeartbeatService | None = None
+        self.current_provider: str | None = None
 
     async def start(self) -> None:
         if self._started:
@@ -90,6 +92,7 @@ class AgentService:
 
         try:
             config = self._load_runtime_config()
+            self.current_provider = config.agents.defaults.provider
             sync_workspace_templates(config.workspace_path)
             provider = _make_provider(config)
             self.agent = AgentLoop(
@@ -109,6 +112,20 @@ class AgentService:
                 channels_config=config.channels,
                 timezone=config.agents.defaults.timezone,
             )
+        except typer.Exit as exc:
+            code = getattr(exc, "exit_code", 1)
+            provider_name = self.current_provider or "unknown"
+            if provider_name == "moonshot":
+                self.startup_error = (
+                    "Moonshot provider startup failed. "
+                    "Please confirm Zeabur environment variable MOONSHOT_API_KEY is set "
+                    "and redeploy the service."
+                )
+            else:
+                self.startup_error = (
+                    f"Provider startup failed for '{provider_name}' "
+                    f"(exit code {code}). Please check service environment variables."
+                )
         except BaseException as exc:
             self.startup_error = str(exc)
             return
@@ -357,6 +374,11 @@ async def status() -> JSONResponse:
         "configExists": CONFIG_PATH.exists(),
         "workspace": str(WORKSPACE_DIR),
         "startupError": service.startup_error,
+        "provider": service.current_provider,
+        "env": {
+            "MOONSHOT_API_KEY": bool(os.getenv("MOONSHOT_API_KEY", "").strip()),
+            "NANOKWALI_RUNTIME_DIR": os.getenv("NANOKWALI_RUNTIME_DIR", ""),
+        },
     })
 
 
