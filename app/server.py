@@ -82,6 +82,8 @@ class VideoGenerateRequest(BaseModel):
     mode: str = "pro"
     duration: str = "10"
     aspect_ratio: str = "16:9"
+    kling_access_key: str | None = None
+    kling_secret_key: str | None = None
 
 
 class AgentService:
@@ -270,6 +272,26 @@ class AgentService:
             )
         )
 
+    def _resolve_kling_client(
+        self,
+        *,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+    ) -> KlingClient | None:
+        request_access_key = (access_key or "").strip()
+        request_secret_key = (secret_key or "").strip()
+        if request_access_key and request_secret_key:
+            return KlingClient(
+                KlingConfig(
+                    access_key=request_access_key,
+                    secret_key=request_secret_key,
+                    http_proxy=os.getenv("KLING_HTTP_PROXY", "").strip() or None,
+                    https_proxy=os.getenv("KLING_HTTPS_PROXY", "").strip() or None,
+                    no_proxy=os.getenv("KLING_NO_PROXY", "").strip() or None,
+                )
+            )
+        return self.kling_client
+
     def _load_runtime_config(self):
         from nanobot.providers.registry import PROVIDERS
 
@@ -401,10 +423,16 @@ class AgentService:
         mode: str,
         duration: str,
         aspect_ratio: str,
+        kling_access_key: str | None = None,
+        kling_secret_key: str | None = None,
     ) -> None:
-        if not self.kling_client:
+        kling_client = self._resolve_kling_client(
+            access_key=kling_access_key,
+            secret_key=kling_secret_key,
+        )
+        if not kling_client:
             raise RuntimeError(
-                "Kling video generation is not configured on the server."
+                "Kling video generation is not configured. Please add Kling AK/SK in the small video settings panel."
             )
         self.register_session(session_id)
         self._track_task(
@@ -416,7 +444,7 @@ class AgentService:
                 mode=mode,
                 duration=duration,
                 aspect_ratio=aspect_ratio,
-                kling_client=self.kling_client,
+                kling_client=kling_client,
             ),
             name=f"video-generation:{session_id}:{time.time_ns()}",
         )
@@ -600,7 +628,7 @@ async def status() -> JSONResponse:
             "NANOKWALI_RUNTIME_DIR": os.getenv("NANOKWALI_RUNTIME_DIR", ""),
         },
         "videoConfig": {
-            "supportsBrowserKlingKeys": False,
+            "supportsBrowserKlingKeys": True,
             "serverKlingConfigured": service.kling_client is not None,
         },
     })
@@ -637,6 +665,8 @@ async def generate_video(payload: VideoGenerateRequest) -> JSONResponse:
             mode=payload.mode,
             duration=payload.duration,
             aspect_ratio=payload.aspect_ratio,
+            kling_access_key=payload.kling_access_key,
+            kling_secret_key=payload.kling_secret_key,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

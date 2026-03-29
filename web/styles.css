@@ -93,6 +93,12 @@ body {
   gap: 12px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .agent-label {
   margin: 0;
   color: var(--muted);
@@ -112,6 +118,11 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
+}
+
+.small-button {
+  padding: 10px 14px;
+  font-size: 13px;
 }
 
 .ghost-button {
@@ -137,6 +148,50 @@ body {
   flex-direction: column;
   gap: 14px;
   padding-right: 6px;
+}
+
+.hidden {
+  display: none;
+}
+
+.video-config-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 248, 238, 0.88);
+  border: 1px solid rgba(92, 61, 24, 0.1);
+}
+
+.video-config-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.mini-config-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mini-config-field input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(47, 36, 23, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text);
+}
+
+.video-config-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .bubble {
@@ -245,6 +300,15 @@ body {
   .composer-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .video-config-row {
+    grid-template-columns: 1fr;
   }
 
   .action-group {

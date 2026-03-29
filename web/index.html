@@ -24,8 +24,27 @@
               <p class="agent-label">专属助理</p>
               <h2>成片指挥台</h2>
             </div>
-            <button id="notifyButton" class="ghost-button" type="button">开启提醒</button>
+            <div class="topbar-actions">
+              <button id="videoConfigButton" class="ghost-button small-button" type="button">视频设置</button>
+              <button id="notifyButton" class="ghost-button" type="button">开启提醒</button>
+            </div>
           </div>
+
+          <section id="videoConfigPanel" class="video-config-panel hidden" aria-label="视频生成配置">
+            <div class="video-config-row">
+              <label class="mini-config-field">
+                <span>AK</span>
+                <input id="klingAccessKeyInput" type="password" autocomplete="off" placeholder="Kling Access Key" />
+              </label>
+              <label class="mini-config-field">
+                <span>SK</span>
+                <input id="klingSecretKeyInput" type="password" autocomplete="off" placeholder="Kling Secret Key" />
+              </label>
+              <button id="saveVideoConfigButton" class="ghost-button small-button" type="button">保存</button>
+              <button id="clearVideoConfigButton" class="ghost-button small-button" type="button">清空</button>
+            </div>
+            <p id="videoConfigStatus" class="video-config-status">当前优先使用服务端配置，也支持你在这里临时填写。</p>
+          </section>
 
           <div id="chatLog" class="chat-log" aria-live="polite"></div>
 
